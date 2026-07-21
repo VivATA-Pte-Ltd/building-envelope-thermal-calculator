@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8849806c4678c61a1 # v6
         with:
           python-version: "3.12"
       - name: Run all unit tests
@@ -77,8 +77,10 @@ jobs:
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COSIGN_EXPERIMENTAL: "1"
         shell: bash
         run: |
+          set -euo pipefail
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           immutable="${SERVER_IMAGE}:server-${GITHUB_SHA}"
           latest="${SERVER_IMAGE}:server-latest"
@@ -93,6 +95,7 @@ jobs:
             test "$(docker image inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$immutable" | sed -n 's/^APP_GIT_SHA=//p')" = "$GITHUB_SHA"
             docker buildx imagetools create --prefer-index=false --tag "$latest" "${SERVER_IMAGE}@${existing_digest}"
             test "$(docker buildx imagetools inspect "$latest" --format '{{json .Manifest.Digest}}' | tr -d '\"')" = "$existing_digest"
+            echo "Published tested and signed image ${SERVER_IMAGE}@${existing_digest} for ${GITHUB_SHA}"
             exit 0
           fi
           docker tag vivateq-envelope-server:test "$immutable"
