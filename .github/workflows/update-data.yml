@@ -1,0 +1,41 @@
+name: Update validated BCA standards
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bca-standards-update
+  cancel-in-progress: false
+
+jobs:
+  extract-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install PDF text extractor
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Extract and validate official BCA source
+        run: python scripts/update_data.py
+      - name: Run deterministic tests
+        run: python -m unittest discover -s tests -v
+      - name: Commit validated change only
+        shell: bash
+        run: |
+          if git diff --quiet -- standards.json data/latest-source.pdf; then
+            echo "Official source is unchanged."
+            exit 0
+          fi
+          git config user.name "vivateq-standards-bot"
+          git config user.email "vivateq-standards-bot@users.noreply.github.com"
+          git add standards.json data/latest-source.pdf
+          git commit -m "chore: update validated BCA envelope standards"
+          git push

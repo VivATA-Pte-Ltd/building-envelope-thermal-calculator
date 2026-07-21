@@ -1,0 +1,81 @@
+name: Test server edition
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-edition-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Run all unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Build server container
+        run: docker build -t vivateq-envelope-server:test .
+      - name: Start and verify container on a custom port
+        shell: bash
+        run: |
+          trap 'docker rm -f envelope-test >/dev/null 2>&1 || true' EXIT
+          docker run -d --name envelope-test -p 18091:8091 -e PORT=8091 -e UPDATE_ON_STARTUP=false vivateq-envelope-server:test
+          ready=false
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:18091/api/health >/dev/null; then ready=true; break; fi
+            sleep 1
+          done
+          test "$ready" = true
+          curl -fsS http://127.0.0.1:18091/api/health >/tmp/health.json
+          python -m json.tool /tmp/health.json
+          curl -fsS http://127.0.0.1:18091/ >/tmp/calculator.html
+          grep -q "BCA Envelope Thermal" /tmp/calculator.html
+          curl -fsS http://127.0.0.1:18091/standards.json >/tmp/standards.json
+          python -m json.tool /tmp/standards.json >/dev/null
+          healthy=false
+          for i in {1..70}; do
+            if test "$(docker inspect -f '{{.State.Health.Status}}' envelope-test)" = healthy; then healthy=true; break; fi
+            sleep 1
+          done
+          test "$healthy" = true
+
+  publish-server:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test-server
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+      - name: Build server image from the tested commit
+        run: docker build -t vivateq-envelope-server:publish .
+      - name: Publish immutable and latest images to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          immutable="ghcr.io/vivateq-pte-ltd/building-envelope-thermal-calculator:server-${GITHUB_SHA::12}"
+          latest="ghcr.io/vivateq-pte-ltd/building-envelope-thermal-calculator:server-latest"
+          docker tag vivateq-envelope-server:publish "$immutable"
+          docker tag vivateq-envelope-server:publish "$latest"
+          docker push "$immutable"
+          docker push "$latest"
