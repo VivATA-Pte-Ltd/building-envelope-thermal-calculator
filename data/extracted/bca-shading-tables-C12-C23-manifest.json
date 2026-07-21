@@ -1,0 +1,144 @@
+{
+  "source_pdf": "../latest-source.pdf",
+  "source_pdf_sha256": "fefc5a6e197022801aa47803789b9b486b4fbe50b3e0ce86be01e6c1de12776c",
+  "csv_sha256": "9610d28ec167ff4c43e347979bdf58afcfc8a2dd0beb7f5b8b593a7e5de1e1cc",
+  "source_title": "Microsoft Word - Envelope Code - Jan 2008 R3b.doc",
+  "source_creation_date": "D:20080229171714",
+  "pdf_page_count": 84,
+  "extraction_method": "PyMuPDF find_tables; normalized to one row per ratio/angle/SC combination",
+  "total_long_rows": 3060,
+  "tables": {
+    "C12": {
+      "device": "horizontal_projection",
+      "orientation": "North & South",
+      "pages": [
+        42
+      ],
+      "long_row_count": 180,
+      "min_SC": 0.6577,
+      "max_SC": 0.938
+    },
+    "C13": {
+      "device": "horizontal_projection",
+      "orientation": "East & West",
+      "pages": [
+        43
+      ],
+      "long_row_count": 180,
+      "min_SC": 0.3963,
+      "max_SC": 0.9363
+    },
+    "C14": {
+      "device": "horizontal_projection",
+      "orientation": "North-East & North-West",
+      "pages": [
+        44
+      ],
+      "long_row_count": 180,
+      "min_SC": 0.4759,
+      "max_SC": 0.9273
+    },
+    "C15": {
+      "device": "horizontal_projection",
+      "orientation": "South-East & South-West",
+      "pages": [
+        45
+      ],
+      "long_row_count": 180,
+      "min_SC": 0.4429,
+      "max_SC": 0.9253
+    },
+    "C16": {
+      "device": "vertical_projection",
+      "orientation": "North & South",
+      "pages": [
+        46
+      ],
+      "long_row_count": 180,
+      "min_SC": 0.6668,
+      "max_SC": 0.9638
+    },
+    "C17": {
+      "device": "vertical_projection",
+      "orientation": "East & West",
+      "pages": [
+        47
+      ],
+      "long_row_count": 180,
+      "min_SC": 0.408,
+      "max_SC": 0.9805
+    },
+    "C18": {
+      "device": "vertical_projection",
+      "orientation": "North-East & North-West",
+      "pages": [
+        48
+      ],
+      "long_row_count": 180,
+      "min_SC": 0.4768,
+      "max_SC": 0.9517
+    },
+    "C19": {
+      "device": "vertical_projection",
+      "orientation": "South-East & South-West",
+      "pages": [
+        49
+      ],
+      "long_row_count": 180,
+      "min_SC": 0.4429,
+      "max_SC": 0.9528
+    },
+    "C20": {
+      "device": "egg_crate",
+      "orientation": "North & South",
+      "pages": [
+        50,
+        51,
+        52
+      ],
+      "long_row_count": 405,
+      "min_SC": 0.6577,
+      "max_SC": 0.8125
+    },
+    "C21": {
+      "device": "egg_crate",
+      "orientation": "East & West",
+      "pages": [
+        53,
+        54,
+        55
+      ],
+      "long_row_count": 405,
+      "min_SC": 0.3963,
+      "max_SC": 0.8482
+    },
+    "C22": {
+      "device": "egg_crate",
+      "orientation": "North-East & North-West",
+      "pages": [
+        56,
+        57,
+        58
+      ],
+      "long_row_count": 405,
+      "min_SC": 0.4759,
+      "max_SC": 0.8019
+    },
+    "C23": {
+      "device": "egg_crate",
+      "orientation": "South-East & South-West",
+      "pages": [
+        59,
+        60,
+        61
+      ],
+      "long_row_count": 405,
+      "min_SC": 0.4429,
+      "max_SC": 0.7951
+    }
+  },
+  "structural_expectations": {
+    "C12-C19": "30 ratio rows (0.1..3.0) x 6 inclinations (0,10,20,30,40,50) = 180 values/table",
+    "C20-C23": "9 R1 values (0.2..1.8) x 9 R2 values (0.2..1.8) x 5 inclinations (0,10,20,30,40) = 405 values/table"
+  }
+}

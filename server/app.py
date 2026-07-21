@@ -33,6 +33,9 @@ class AppState:
         self.update_interval = max(300, int(update_interval))
         self.admin_token = admin_token
         self.update_on_startup = update_on_startup
+        self.app_version = os.environ.get("APP_VERSION", "development")
+        self.git_sha = os.environ.get("APP_GIT_SHA", "unknown")
+        self.repository = os.environ.get("APP_REPOSITORY", "https://github.com/VivATA-Pte-Ltd/building-envelope-thermal-calculator")
         self._lock = threading.Lock()
         self.last_update_check_utc: str | None = None
         self.last_update_error: str | None = None
@@ -70,6 +73,9 @@ class AppState:
     def health(self) -> dict:
         return {
             "status": "ok" if self._manifest.get("status") == "validated" else "degraded",
+            "app_version": self.app_version,
+            "git_sha": self.git_sha,
+            "repository": self.repository,
             "standards_status": self._manifest.get("status"),
             "source_sha256": self._manifest.get("source_sha256"),
             "last_update_check_utc": self.last_update_check_utc,
@@ -167,8 +173,11 @@ def create_handler(state: AppState):
             if path in ("/", "/index.html"):
                 self.send_file(state.root / "index.html", "text/html; charset=utf-8", "no-cache")
                 return
-            if path == "/shading.js":
-                self.send_file(state.root / "shading.js", "text/javascript; charset=utf-8", "no-cache")
+            if path in ("/shading.js", "/shading-data.js", "/ifc-shading.js", "/ifc-loader.js", "/vendor/web-ifc/web-ifc-api.js", "/vendor/sheetjs/xlsx.full.min.js", "/vendor/html2pdf/html2pdf.bundle.min.js"):
+                self.send_file(state.root / path.lstrip("/"), "text/javascript; charset=utf-8", "public, max-age=31536000, immutable" if path.startswith("/vendor/") else "no-cache")
+                return
+            if path == "/vendor/web-ifc/web-ifc.wasm":
+                self.send_file(state.root / "vendor" / "web-ifc" / "web-ifc.wasm", "application/wasm", "public, max-age=31536000, immutable")
                 return
             if path == "/standards.json":
                 self.send_json(state._manifest)
@@ -211,8 +220,11 @@ def create_handler(state: AppState):
             if path in ("/", "/index.html"):
                 self.send_file(state.root / "index.html", "text/html; charset=utf-8", "no-cache", head_only=True)
                 return
-            if path == "/shading.js":
-                self.send_file(state.root / "shading.js", "text/javascript; charset=utf-8", "no-cache", head_only=True)
+            if path in ("/shading.js", "/shading-data.js", "/ifc-shading.js", "/ifc-loader.js", "/vendor/web-ifc/web-ifc-api.js", "/vendor/sheetjs/xlsx.full.min.js", "/vendor/html2pdf/html2pdf.bundle.min.js"):
+                self.send_file(state.root / path.lstrip("/"), "text/javascript; charset=utf-8", "public, max-age=31536000, immutable" if path.startswith("/vendor/") else "no-cache", head_only=True)
+                return
+            if path == "/vendor/web-ifc/web-ifc.wasm":
+                self.send_file(state.root / "vendor" / "web-ifc" / "web-ifc.wasm", "application/wasm", "public, max-age=31536000, immutable", head_only=True)
                 return
             if path == "/standards.json":
                 self.send_json(state._manifest, head_only=True)

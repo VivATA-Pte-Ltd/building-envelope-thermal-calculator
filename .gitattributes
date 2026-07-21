@@ -1,0 +1,4 @@
+vendor/web-ifc/web-ifc-api.js -text -whitespace
+vendor/web-ifc/web-ifc.wasm binary
+vendor/sheetjs/xlsx.full.min.js -text -whitespace
+vendor/html2pdf/html2pdf.bundle.min.js -text -whitespace

@@ -1,0 +1,9 @@
+services:
+  envelope-calculator:
+    build:
+      context: .
+      args:
+        APP_GIT_SHA: ${APP_GIT_SHA:-local-development}
+        APP_VERSION: ${APP_VERSION:-4.3.0}
+    image: vivateq/building-envelope-thermal-calculator:local
+    pull_policy: never

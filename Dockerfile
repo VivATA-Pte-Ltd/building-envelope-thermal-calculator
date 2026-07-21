@@ -1,6 +1,12 @@
 FROM python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
 
-LABEL org.opencontainers.image.source="https://github.com/VivaTEQ-Pte-Ltd/building-envelope-thermal-calculator" \
+ARG APP_GIT_SHA=unknown
+ARG APP_VERSION=4.3.0
+ARG APP_REPOSITORY=https://github.com/VivATA-Pte-Ltd/building-envelope-thermal-calculator
+
+LABEL org.opencontainers.image.source="${APP_REPOSITORY}" \
+      org.opencontainers.image.revision="${APP_GIT_SHA}" \
+      org.opencontainers.image.version="${APP_VERSION}" \
       org.opencontainers.image.description="VivaTEQ BCA ETTV, RETV and RTTV calculator server" \
       org.opencontainers.image.licenses="Proprietary"
 
@@ -9,7 +15,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY index.html shading.js standards.json ./
+COPY index.html shading.js shading-data.js ifc-shading.js ifc-loader.js standards.json ./
+COPY vendor ./vendor
 COPY data ./data
 COPY scripts ./scripts
 COPY server ./server
@@ -24,6 +31,9 @@ ENV HOST=0.0.0.0 \
     UPDATE_ON_STARTUP=true \
     STANDARDS_PATH=/app/data/standards.json \
     SNAPSHOT_PATH=/app/data/latest-source.pdf \
+    APP_VERSION=${APP_VERSION} \
+    APP_GIT_SHA=${APP_GIT_SHA} \
+    APP_REPOSITORY=${APP_REPOSITORY} \
     PYTHONUNBUFFERED=1
 
 EXPOSE 8080

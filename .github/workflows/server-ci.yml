@@ -1,4 +1,4 @@
-name: Test server edition
+name: Test and publish server edition
 
 on:
   push:
@@ -11,14 +11,19 @@ permissions:
 
 concurrency:
   group: server-edition-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  SERVER_IMAGE: ghcr.io/vivata-pte-ltd/building-envelope-thermal-calculator
 
 jobs:
   test-server:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: read
+      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
@@ -28,54 +33,73 @@ jobs:
           python-version: "3.12"
       - name: Run all unit tests
         run: python -m unittest discover -s tests -v
-      - name: Build server container
-        run: docker build -t vivateq-envelope-server:test .
+      - name: Build the exact server image to test and publish
+        run: |
+          docker build \
+            --build-arg APP_GIT_SHA="$GITHUB_SHA" \
+            --build-arg APP_VERSION="4.3.0" \
+            --build-arg APP_REPOSITORY="https://github.com/$GITHUB_REPOSITORY" \
+            -t vivateq-envelope-server:test .
       - name: Start and verify container on a custom port
         shell: bash
         run: |
           trap 'docker rm -f envelope-test >/dev/null 2>&1 || true' EXIT
           docker run -d --name envelope-test -p 18091:8091 -e PORT=8091 -e UPDATE_ON_STARTUP=false vivateq-envelope-server:test
           ready=false
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:18091/api/health >/dev/null; then ready=true; break; fi
+          for _ in {1..30}; do
+            if curl -fsS http://127.0.0.1:18091/api/health >/tmp/health.json; then ready=true; break; fi
             sleep 1
           done
           test "$ready" = true
-          curl -fsS http://127.0.0.1:18091/api/health >/tmp/health.json
-          python -m json.tool /tmp/health.json
+          python - <<'PY'
+          import json, os
+          with open('/tmp/health.json', encoding='utf-8') as handle:
+              health = json.load(handle)
+          assert health['status'] == 'ok', health
+          assert health['git_sha'] == os.environ['GITHUB_SHA'], health
+          PY
           curl -fsS http://127.0.0.1:18091/ >/tmp/calculator.html
           grep -q "BCA Envelope Thermal" /tmp/calculator.html
           curl -fsS http://127.0.0.1:18091/standards.json >/tmp/standards.json
           python -m json.tool /tmp/standards.json >/dev/null
           healthy=false
-          for i in {1..70}; do
+          for _ in {1..70}; do
             if test "$(docker inspect -f '{{.State.Health.Status}}' envelope-test)" = healthy; then healthy=true; break; fi
             sleep 1
           done
           test "$healthy" = true
-
-  publish-server:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: test-server
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - name: Install Cosign
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
         with:
-          persist-credentials: false
-      - name: Build server image from the tested commit
-        run: docker build -t vivateq-envelope-server:publish .
-      - name: Publish immutable and latest images to GHCR
+          cosign-release: v3.1.2
+      - name: Publish full-commit and latest tags from the tested image
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-          immutable="ghcr.io/vivateq-pte-ltd/building-envelope-thermal-calculator:server-${GITHUB_SHA::12}"
-          latest="ghcr.io/vivateq-pte-ltd/building-envelope-thermal-calculator:server-latest"
-          docker tag vivateq-envelope-server:publish "$immutable"
-          docker tag vivateq-envelope-server:publish "$latest"
+          immutable="${SERVER_IMAGE}:server-${GITHUB_SHA}"
+          latest="${SERVER_IMAGE}:server-latest"
+          if docker buildx imagetools inspect "$immutable" >/dev/null 2>&1; then
+            echo "Immutable full-commit tag already exists; refusing to overwrite it."
+            existing_digest=$(docker buildx imagetools inspect "$immutable" --format '{{json .Manifest.Digest}}' | tr -d '"')
+            cosign verify \
+              --certificate-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/server-ci.yml@refs/heads/main" \
+              --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+              "${SERVER_IMAGE}@${existing_digest}" >/dev/null
+            docker pull "$immutable"
+            test "$(docker image inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$immutable" | sed -n 's/^APP_GIT_SHA=//p')" = "$GITHUB_SHA"
+            docker buildx imagetools create --prefer-index=false --tag "$latest" "${SERVER_IMAGE}@${existing_digest}"
+            test "$(docker buildx imagetools inspect "$latest" --format '{{json .Manifest.Digest}}' | tr -d '\"')" = "$existing_digest"
+            exit 0
+          fi
+          docker tag vivateq-envelope-server:test "$immutable"
           docker push "$immutable"
-          docker push "$latest"
+          digest=$(docker buildx imagetools inspect "$immutable" --format '{{json .Manifest.Digest}}' | tr -d '"')
+          test "${digest#sha256:}" != "$digest"
+          cosign sign --yes "${SERVER_IMAGE}@${digest}"
+          docker buildx imagetools create --prefer-index=false --tag "$latest" "${SERVER_IMAGE}@${digest}"
+          test "$(docker buildx imagetools inspect "$latest" --format '{{json .Manifest.Digest}}' | tr -d '\"')" = "$digest"
+          echo "Published tested and signed image ${SERVER_IMAGE}@${digest} for ${GITHUB_SHA}"

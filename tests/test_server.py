@@ -50,6 +50,9 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(headers["Content-Type"], "application/json; charset=utf-8")
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["standards_status"], "validated")
+        self.assertEqual(payload["app_version"], os.environ.get("APP_VERSION", "development"))
+        self.assertEqual(payload["git_sha"], os.environ.get("APP_GIT_SHA", "unknown"))
+        self.assertEqual(payload["repository"], os.environ.get("APP_REPOSITORY", "https://github.com/VivATA-Pte-Ltd/building-envelope-thermal-calculator"))
         self.assertRegex(payload["source_sha256"], r"^[a-f0-9]{64}$")
 
     def test_serves_calculator_and_manifest_with_safe_cache_headers(self):
@@ -69,17 +72,44 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(json.loads(body)["status"], "validated")
         self.assertEqual(headers["Cache-Control"], "no-store")
 
-    def test_serves_shading_engine_for_get_and_head(self):
-        status, headers, body = self.request("GET", "/shading.js")
-        self.assertEqual(status, 200)
-        self.assertIn(b"calculateEffectiveSC2", body)
-        self.assertEqual(headers["Content-Type"], "text/javascript; charset=utf-8")
-        self.assertEqual(headers["Cache-Control"], "no-cache")
+    def test_serves_shading_and_ifc_engines_for_get_and_head(self):
+        resources = {
+            "/shading.js": b"calculateStandardSC2",
+            "/shading-data.js": b'"schemaVersion":1',
+            "/ifc-shading.js": b"analyzeIfcGeometry",
+            "/ifc-loader.js": b"loadIfcFile",
+        }
+        for path, marker in resources.items():
+            with self.subTest(path=path):
+                status, headers, body = self.request("GET", path)
+                self.assertEqual(status, 200)
+                self.assertIn(marker, body)
+                self.assertEqual(headers["Content-Type"], "text/javascript; charset=utf-8")
+                self.assertEqual(headers["Cache-Control"], "no-cache")
 
-        head_status, head_headers, head_body = self.request("HEAD", "/shading.js")
-        self.assertEqual(head_status, 200)
-        self.assertEqual(head_headers["Content-Length"], headers["Content-Length"])
-        self.assertEqual(head_body, b"")
+                head_status, head_headers, head_body = self.request("HEAD", path)
+                self.assertEqual(head_status, 200)
+                self.assertEqual(head_headers["Content-Length"], headers["Content-Length"])
+                self.assertEqual(head_body, b"")
+
+    def test_serves_local_pinned_web_ifc_runtime(self):
+        resources = {
+            "/vendor/web-ifc/web-ifc-api.js": (b"IfcAPI", "text/javascript; charset=utf-8"),
+            "/vendor/web-ifc/web-ifc.wasm": (b"\x00asm", "application/wasm"),
+            "/vendor/sheetjs/xlsx.full.min.js": (b"XLSX", "text/javascript; charset=utf-8"),
+            "/vendor/html2pdf/html2pdf.bundle.min.js": (b"html2pdf", "text/javascript; charset=utf-8"),
+        }
+        for path, (marker, content_type) in resources.items():
+            with self.subTest(path=path):
+                status, headers, body = self.request("GET", path)
+                self.assertEqual(status, 200)
+                self.assertIn(marker, body)
+                self.assertEqual(headers["Content-Type"], content_type)
+                self.assertEqual(headers["Cache-Control"], "public, max-age=31536000, immutable")
+                head_status, head_headers, head_body = self.request("HEAD", path)
+                self.assertEqual(head_status, 200)
+                self.assertEqual(head_headers["Content-Length"], headers["Content-Length"])
+                self.assertEqual(head_body, b"")
 
     def test_api_standards_returns_current_manifest(self):
         status, headers, body = self.request("GET", "/api/standards")

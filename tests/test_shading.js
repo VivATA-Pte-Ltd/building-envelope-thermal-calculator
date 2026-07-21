@@ -3,11 +3,13 @@ const assert = require('node:assert/strict');
 const {
   calculateCombinedSC,
   calculateEffectiveSC2,
+  calculateStandardSC2,
   escapeHTML,
   parseSolarRows,
   resolveShading,
   safeSpreadsheetText,
 } = require('../shading.js');
+const shadingData = require('../shading-data.js');
 
 function completeRows(gByMonth = { M: 1, J: 1, D: 1 }) {
   return ['M', 'J', 'D'].flatMap(month =>
@@ -34,6 +36,50 @@ test('spreadsheet text neutralizes formula injection after whitespace and contro
 
 test('combined SC multiplies glass SC1 by external-device SC2', () => {
   assert.equal(calculateCombinedSC(0.70, 0.55), 0.385);
+});
+
+test('standard horizontal overhang geometry reproduces BCA Table C15 examples', () => {
+  const level = calculateStandardSC2({
+    type: 'horizontal', orientation: 'SW', projection: 0.3, windowHeight: 0.6, angle: 0,
+  }, shadingData);
+  assert.equal(level.table, 'C15');
+  assert.equal(level.r1, 0.5);
+  assert.equal(level.sc2, 0.6981);
+
+  const inclined = calculateStandardSC2({
+    type: 'horizontal', orientation: 'SW', projection: 0.3, windowHeight: 0.75, angle: 30,
+  }, shadingData);
+  assert.equal(inclined.r1, 0.4);
+  assert.equal(inclined.sc2, 0.6692);
+});
+
+test('standard vertical and egg-crate geometry use the applicable orientation tables', () => {
+  const vertical = calculateStandardSC2({
+    type: 'vertical', orientation: 'E', projection: 0.3, windowWidth: 1.5, angle: 20,
+  }, shadingData);
+  assert.equal(vertical.table, 'C17');
+  assert.equal(vertical.r2, 0.2);
+  assert.equal(vertical.sc2, 0.9406);
+
+  const eggcrate = calculateStandardSC2({
+    type: 'eggcrate', orientation: 'N', horizontalProjection: 0.4,
+    verticalProjection: 0.4, windowHeight: 2, windowWidth: 2, angle: 0,
+  }, shadingData);
+  assert.equal(eggcrate.table, 'C20');
+  assert.equal(eggcrate.r1, 0.2);
+  assert.equal(eggcrate.r2, 0.2);
+  assert.equal(eggcrate.sc2, 0.8125);
+});
+
+test('standard geometry interpolation is bounded by the official table ranges', () => {
+  const interpolated = calculateStandardSC2({
+    type: 'horizontal', orientation: 'SW', projection: 0.45, windowHeight: 1, angle: 15,
+  }, shadingData);
+  assert.ok(interpolated.sc2 > 0.62 && interpolated.sc2 < 0.70);
+  assert.equal(interpolated.interpolated, true);
+  assert.throws(() => calculateStandardSC2({
+    type: 'horizontal', orientation: 'N', projection: 0.05, windowHeight: 1, angle: 0,
+  }, shadingData), /R1 must be within/);
 });
 
 test('blank SC values are rejected instead of becoming zero', () => {

@@ -2,3 +2,5 @@ _site/
 __pycache__/
 *.pyc
 *.tmp
+server/github-sync.log
+standards.update.lock
