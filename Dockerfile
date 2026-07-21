@@ -1,7 +1,7 @@
 FROM python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
 
 ARG APP_GIT_SHA=unknown
-ARG APP_VERSION=4.3.0
+ARG APP_VERSION=4.4.0
 ARG APP_REPOSITORY=https://github.com/VivATA-Pte-Ltd/building-envelope-thermal-calculator
 
 LABEL org.opencontainers.image.source="${APP_REPOSITORY}" \
@@ -15,7 +15,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY index.html shading.js shading-data.js ifc-shading.js ifc-loader.js standards.json ./
+COPY index.html shading.js shading-data.js ifc-shading.js ifc-loader.js drawing-import.js drawing-dxf-worker.js standards.json ./
 COPY vendor ./vendor
 COPY data ./data
 COPY scripts ./scripts

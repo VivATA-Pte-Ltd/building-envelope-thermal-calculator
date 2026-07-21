@@ -15,6 +15,7 @@ class BrandingTests(unittest.TestCase):
         ]
         combined = "\n".join((ROOT / name).read_text(encoding="utf-8") for name in files)
         self.assertIn("VivaTEQ", combined)
+        self.assertIn("This calculator is developed by VivaTEQ.", (ROOT / "index.html").read_text(encoding="utf-8"))
         self.assertNotIn("VivATA", combined)
         self.assertNotIn("vivata-pte-ltd", combined.lower())
 

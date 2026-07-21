@@ -37,7 +37,7 @@ jobs:
         run: |
           docker build \
             --build-arg APP_GIT_SHA="$GITHUB_SHA" \
-            --build-arg APP_VERSION="4.3.0" \
+            --build-arg APP_VERSION="4.4.0" \
             --build-arg APP_REPOSITORY="https://github.com/$GITHUB_REPOSITORY" \
             -t vivateq-envelope-server:test .
       - name: Start and verify container on a custom port

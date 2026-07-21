@@ -4,6 +4,6 @@ services:
       context: .
       args:
         APP_GIT_SHA: ${APP_GIT_SHA:-local-development}
-        APP_VERSION: ${APP_VERSION:-4.3.0}
+        APP_VERSION: ${APP_VERSION:-4.4.0}
     image: vivateq/building-envelope-thermal-calculator:local
     pull_policy: never

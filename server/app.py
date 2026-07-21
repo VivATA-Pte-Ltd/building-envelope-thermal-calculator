@@ -173,7 +173,7 @@ def create_handler(state: AppState):
             if path in ("/", "/index.html"):
                 self.send_file(state.root / "index.html", "text/html; charset=utf-8", "no-cache")
                 return
-            if path in ("/shading.js", "/shading-data.js", "/ifc-shading.js", "/ifc-loader.js", "/vendor/web-ifc/web-ifc-api.js", "/vendor/sheetjs/xlsx.full.min.js", "/vendor/html2pdf/html2pdf.bundle.min.js"):
+            if path in ("/shading.js", "/shading-data.js", "/ifc-shading.js", "/ifc-loader.js", "/drawing-import.js", "/drawing-dxf-worker.js", "/vendor/web-ifc/web-ifc-api.js", "/vendor/sheetjs/xlsx.full.min.js", "/vendor/html2pdf/html2pdf.bundle.min.js", "/vendor/dxf-parser/dxf-parser.js", "/vendor/pdfjs/pdf.min.mjs", "/vendor/pdfjs/pdf.worker.min.mjs"):
                 self.send_file(state.root / path.lstrip("/"), "text/javascript; charset=utf-8", "public, max-age=31536000, immutable" if path.startswith("/vendor/") else "no-cache")
                 return
             if path == "/vendor/web-ifc/web-ifc.wasm":
@@ -220,7 +220,7 @@ def create_handler(state: AppState):
             if path in ("/", "/index.html"):
                 self.send_file(state.root / "index.html", "text/html; charset=utf-8", "no-cache", head_only=True)
                 return
-            if path in ("/shading.js", "/shading-data.js", "/ifc-shading.js", "/ifc-loader.js", "/vendor/web-ifc/web-ifc-api.js", "/vendor/sheetjs/xlsx.full.min.js", "/vendor/html2pdf/html2pdf.bundle.min.js"):
+            if path in ("/shading.js", "/shading-data.js", "/ifc-shading.js", "/ifc-loader.js", "/drawing-import.js", "/drawing-dxf-worker.js", "/vendor/web-ifc/web-ifc-api.js", "/vendor/sheetjs/xlsx.full.min.js", "/vendor/html2pdf/html2pdf.bundle.min.js", "/vendor/dxf-parser/dxf-parser.js", "/vendor/pdfjs/pdf.min.mjs", "/vendor/pdfjs/pdf.worker.min.mjs"):
                 self.send_file(state.root / path.lstrip("/"), "text/javascript; charset=utf-8", "public, max-age=31536000, immutable" if path.startswith("/vendor/") else "no-cache", head_only=True)
                 return
             if path == "/vendor/web-ifc/web-ifc.wasm":

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "dependencies": [
+    {
+      "name": "dxf-parser",
+      "version": "1.1.2",
+      "license": "MIT",
+      "source": "https://www.npmjs.com/package/dxf-parser/v/1.1.2",
+      "files": {
+        "dxf-parser.js": "445dd62529369a4ef32520d8b6232031ea8af01f1029b08b2d876ff6b7807b7b"
+      }
+    },
+    {
+      "name": "pdfjs-dist",
+      "version": "6.1.200",
+      "license": "Apache-2.0",
+      "source": "https://www.npmjs.com/package/pdfjs-dist/v/6.1.200",
+      "files": {
+        "pdf.min.mjs": "4ba2f15599b03fde8755ad91349920c21dadd3e8fd6b6460a7663d46d4cf21b5",
+        "pdf.worker.min.mjs": "2ab9e09667296dab1a618868b3ce6e6c23d5b8f48120ae7c5b34e7e335ed01fa"
+      }
+    }
+  ]
+}

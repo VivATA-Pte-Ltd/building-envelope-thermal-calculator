@@ -2,3 +2,7 @@ vendor/web-ifc/web-ifc-api.js -text -whitespace
 vendor/web-ifc/web-ifc.wasm binary
 vendor/sheetjs/xlsx.full.min.js -text -whitespace
 vendor/html2pdf/html2pdf.bundle.min.js -text -whitespace
+vendor/dxf-parser/dxf-parser.js -text -whitespace
+vendor/pdfjs/pdf.min.mjs -text -whitespace
+vendor/pdfjs/pdf.worker.min.mjs -text -whitespace
+tests/fixtures/*.pdf binary

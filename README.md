@@ -10,7 +10,7 @@ A browser-based submission aid for Singapore BCA envelope thermal calculations:
 
 ## Automatic standards update
 
-The browser loads `standards.json` every time the page opens, validates it, and applies the newest published constants. The hosted app uses its same-origin manifest; a downloaded `file://` copy uses the public VivaTEQ trial-demo manifest. Fallback order:
+The browser loads `standards.json` every time the page opens, validates it, and applies the newest published constants. The hosted app uses its same-origin manifest; a downloaded `file://` copy falls back to its embedded verified baseline when browser file-access policy blocks the adjacent manifest. Fallback order:
 
 1. live validated manifest;
 2. cached last-known-good validated manifest;
@@ -32,7 +32,7 @@ For each façade, select **Automatic standard device** and enter the window and 
 
 ### Complex self-shading from IFC
 
-The **All Orientations** tab accepts an `.ifc` model and processes it locally in the browser with repository-vendored, version-pinned `web-ifc` 0.0.77; the model is not transmitted to an external service. All executable browser dependencies used on this page (`web-ifc`, SheetJS and html2pdf) are served from the repository's `vendor/` directory rather than runtime CDNs. It:
+The **All Orientations** tab accepts an `.ifc` model and processes it locally in the browser with repository-vendored, version-pinned `web-ifc` 0.0.77; the model is not transmitted to an external service. All executable browser dependencies used on this page (`web-ifc`, PDF.js, dxf-parser, SheetJS and html2pdf) are served from the repository's `vendor/` directory rather than runtime CDNs. It:
 
 1. tessellates `IfcWindow` and model geometry;
 2. converts IFC project units through `web-ifc` and applies nested placements;
@@ -42,6 +42,12 @@ The **All Orientations** tab accepts an `.ifc` model and processes it locally in
 6. exports IFC IDs, hourly rows, assumptions and warnings in the shading audit trail.
 
 Conservative controls: files over 250 MB are rejected before WASM loading; missing/degenerate windows and unsupported concave, fragmented, overlapping, noncoplanar or unrelated disconnected exterior geometry are rejected; any rejected `IfcWindow` invalidates the whole IFC-derived result and blocks report export. The browser enforces finite model triangle and vertex-buffer budgets, a 2,000-triangle/6,000-vertex-record limit per window, and physical coordinate/span bounds before topology processing. Convex non-rectangular windows use polygon area and in-polygon samples, opaque `IfcDoor` geometry remains an occluder, and window outward-normal signs are inferred from the model centre. The QP must verify model north and concave/courtyard façades. The pinned `web-ifc` JavaScript/WASM runtime is served from `vendor/web-ifc/`; no runtime CDN is used.
+
+### PDF and DXF drawing measurements
+
+The **All Orientations** tab also reads PDF and ASCII DXF details locally when the calculator is served by the included Python/Docker server. A directly opened `file://` copy cannot securely start the parser workers, so drawing import is disabled there; the ordinary standalone calculator remains usable. Pinned `pdfjs-dist` 6.1.200 renders the selected PDF page and lazily extracts only that page’s embedded text in its local worker; pinned `dxf-parser` 1.1.2 reads supported line, polyline, circle, arc, point, text and dimension entities plus layers and `$INSUNITS` in a separate, time-limited browser worker. Scanned/raster PDFs can be rendered but require manual scale calibration. Binary DXF, unsupported entities, unsafe coordinates, files over 50 MiB, excessive entities/vertices/text, PDFs over 100 pages, processing over 30 seconds and oversized renders fail closed. DWG is not parsed directly; export it to DXF or IFC.
+
+Drawing geometry never silently changes a calculation. The user selects the façade and page/layer, calibrates if needed, measures the applicable window and projection dimensions, and confirms them before application. The calculator validates the resulting ratios against the official C12–C23 table ranges and records the file, page/layer, units/calibration and QP-verification warning in the existing shading audit trail.
 
 ## Server edition
 

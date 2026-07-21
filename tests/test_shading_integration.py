@@ -96,8 +96,8 @@ class ShadingIntegrationTests(unittest.TestCase):
         self.assertIn("function sanitizeRTTVReportData", self.html)
         self.assertIn("let activeDevice", self.html)
 
-    def test_version_is_bumped_for_geometry_automation_release(self):
-        self.assertIn("const VERSION = 'v4.3.0'", self.html)
+    def test_version_is_bumped_for_drawing_import_release(self):
+        self.assertIn("const VERSION = 'v4.4.0'", self.html)
 
 
 if __name__ == "__main__":
